@@ -1,26 +1,13 @@
 cmake_minimum_required(VERSION 3.18)
-project(services)
+project(_services)
 
-#set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_BUILD_TYPE debug)
+#set(CMAKE_BUILD_TYPE release)
 
-include_directories( ${CMAKE_CURRENT_BINARY_DIR} ./ )
+set(LIBRARY_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/bin")
+set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/bin")
+set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${LIBRARY_OUTPUT_PATH}")
+set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES "${EXECUTABLE_OUTPUT_PATH}")
 
-add_library( ${PROJECT_NAME}
-    memory.c
-    ptr_list.c
-    strings.c
-    tree.c
-)
-
-target_compile_options(${PROJECT_NAME} PRIVATE
-    -Wall
-    -Wextra
-    $<$<CONFIG:DEBUG>:-g3>
-    $<$<CONFIG:DEBUG>:-Og>
-    $<$<CONFIG:DEBUG>:-DMEMORY_DEBUG>
-    $<$<CONFIG:DEBUG>:-DENA_TRACE>
-    $<$<CONFIG:RELEASE>:-Ofast>
-    $<$<CONFIG:PROFILE>:-pg -O0>
-)
-
-#add_subdirectory(tests)
+add_subdirectory(src)

@@ -1,5 +1,20 @@
 {
     "cSpell.words": [
-        "rchr"
-    ]
+        "fidx",
+        "hfunc",
+        "rchr",
+        "retv",
+        "sidx",
+        "sptr",
+        "strlst"
+    ],
+    "files.associations": {
+        "exception": "c",
+        "string": "c",
+        "sstream": "c",
+        "type_traits": "cpp",
+        "array": "cpp",
+        "string_view": "cpp",
+        "ranges": "cpp"
+    }
 }
