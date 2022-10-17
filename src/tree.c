@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#define MIN(l, r) (((l) < (r)) ? (l) : (r))
 #include "memory.h"
 #include "tree.h"
 
@@ -44,11 +45,13 @@ static TreeNode* tree_find(TreeNode* root, const char* key) {
         return root;
 }
 
-static void tree_add(TreeNode** root, TreeNode* node) {
+static TreeErr tree_add(TreeNode** root, TreeNode* node) {
 
     if(node != NULL) {
-        if(*root == NULL)
+        if(*root == NULL) {
             *root = node;
+            return TREE_OK;
+        }
         else if((*(root))->key != NULL) {
             int x = strcmp((*(root))->key, node->key);
             if(x < 0) {
@@ -57,6 +60,7 @@ static void tree_add(TreeNode** root, TreeNode* node) {
                 }
                 else {
                     (*(root))->left = node;
+                    return TREE_OK;
                 }
             }
             else if(x > 0) {
@@ -65,24 +69,27 @@ static void tree_add(TreeNode** root, TreeNode* node) {
                 }
                 else {
                     (*(root))->right = node;
+                    return TREE_OK;
                 }
             }
             else
-                printf("duplicate node\n");
+                return TREE_DUPLICATE;
         }
     }
+
+    return TREE_ERR;
 }
 
-static void tree_remove(TreeNode* root, TreeNode** node, const char* key) {
+static TreeErr tree_remove(TreeNode* root, TreeNode** node, const char* key) {
 
     int x = strcmp((*node)->key, key);
     if(x > 0) {
         if((*node)->right != NULL)
-            tree_remove(root, &((*node)->right), key);
+            return tree_remove(root, &((*node)->right), key);
     }
     else if(x < 0) {
         if((*node)->left != NULL)
-            tree_remove(root, &((*node)->left), key);
+            return tree_remove(root, &((*node)->left), key);
     }
     else {
         TreeNode *left = (*node)->left, *right = (*node)->right;
@@ -90,6 +97,7 @@ static void tree_remove(TreeNode* root, TreeNode** node, const char* key) {
         (*node)->right = NULL;
 
         _free((*node)->key);
+        _free((*node)->data);
         _free(*node);
         *node = NULL;
 
@@ -97,10 +105,14 @@ static void tree_remove(TreeNode* root, TreeNode** node, const char* key) {
             tree_add(&root, right);
         if(left != NULL)
             tree_add(&root, left);
+
+        return TREE_OK;
     }
+
+    return TREE_ERR;
 }
 
-static void tree_destroy(TreeNode* node) {
+static TreeErr tree_destroy(TreeNode* node) {
 
     if(node->right != NULL)
         tree_destroy(node->right);
@@ -108,21 +120,26 @@ static void tree_destroy(TreeNode* node) {
         tree_destroy(node->left);
 
     _free(node->key);
+    _free(node->data);
     _free(node);
+
+    return TREE_OK;
 }
 
-static TreeNode* tree_create(const char* key, void* data) {
+static TreeNode* tree_create(const char* key, void* data, size_t size) {
 
     TreeNode* node = _alloc_ds(TreeNode);
 
     node->key = _copy_str(key);
-    node->data = data;
+    node->data = _alloc(size);
+    node->size = size;
+    memcpy(node->data, data, size);
     node->left = node->right = NULL;
 
     return node;
 }
 
-void treeBalance(Tree* tree) {
+TreeErr treeBalance(Tree* tree) {
 
     int left = 0;
     int right = 0;
@@ -134,14 +151,16 @@ void treeBalance(Tree* tree) {
         tree->root = node->left;
         node->left = NULL;
         tree_add(&tree->root, node);
-        treeBalance(tree);
+        return treeBalance(tree);
     }
     else if(right - left > 1) {
         tree->root = node->right;
         node->right = NULL;
         tree_add(&tree->root, node);
-        treeBalance(tree);
+        return treeBalance(tree);
     }
+
+    return TREE_OK;
 }
 
 Tree* treeCreate() {
@@ -152,39 +171,46 @@ Tree* treeCreate() {
     return tree;
 }
 
-void treeDestroy(Tree* tree) {
+TreeErr treeDestroy(Tree* tree) {
 
-    assert(tree != NULL);
+    if(tree == NULL)
+        return TREE_PARAM;
 
-    tree_destroy(tree->root);
+    return tree_destroy(tree->root);
 }
 
-void* treeFind(Tree* tree, const char* key) {
+TreeErr treeFind(Tree* tree, const char* key, void* data, size_t size) {
 
-    assert(tree != NULL);
-    assert(key != NULL);
+    if((tree == NULL) || (key == NULL))
+        return TREE_PARAM;
 
     TreeNode* node = tree_find(tree->root, key);
-    if(node != NULL)
-        return node->data;
-    else {
-        printf("node not found!");
-        return NULL;
+    if(node != NULL) {
+        memcpy(data, node->data, MIN(size, node->size));
+        if(size != node->size)
+            return TREE_SIZE;
+        else
+            return TREE_OK;
     }
+    else {
+        return TREE_NOT_FOUND;
+    }
+
+    return TREE_ERR;
 }
 
-void treeAdd(Tree* tree, const char* key, void* data) {
+TreeErr treeAdd(Tree* tree, const char* key, void* data, size_t size) {
 
-    assert(tree != NULL);
-    assert(key != NULL);
+    if((tree == NULL) || (key == NULL))
+        return TREE_PARAM;
 
-    tree_add(&tree->root, tree_create(key, data));
+    return tree_add(&tree->root, tree_create(key, data, size));
 }
 
-void treeRemove(Tree* tree, const char* key) {
+TreeErr treeRemove(Tree* tree, const char* key) {
 
-    assert(tree != NULL);
-    assert(key != NULL);
+    if((tree == NULL) || (key == NULL))
+        return TREE_PARAM;
 
     if(tree->root != NULL) {
         TreeNode* node = tree->root;
@@ -203,9 +229,14 @@ void treeRemove(Tree* tree, const char* key) {
                 tree->root = NULL;
 
             _free(node->key);
+            _free(node->data);
             _free(node);
+
+            return TREE_OK;
         }
         else
-            tree_remove(node, &tree->root, key);
+            return tree_remove(node, &tree->root, key);
     }
+
+    return TREE_ERR;
 }

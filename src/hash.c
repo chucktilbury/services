@@ -90,7 +90,7 @@ static void rehash_table(Hash* tab) {
         tab->cap <<= 1; // double the capacity
         tab->tombstones = 0;
         tab->count = 0;
-        tab->table = _alloc_ds_array(HashNode*, tab->cap);
+        tab->table = _alloc_ds_list(HashNode*, tab->cap);
         for(int i = 0; i < tab->cap; i++)
             tab->table[i] = NULL;
 
@@ -113,7 +113,7 @@ Hash* HashCreate() {
     tab->count = 0;
     tab->cap = 0x01 << 3;
 
-    tab->table = _alloc_ds_array(HashNode*, tab->cap);
+    tab->table = _alloc_ds_list(HashNode*, tab->cap);
     for(int i = 0; i < tab->cap; i++)
         tab->table[i] = NULL;
 

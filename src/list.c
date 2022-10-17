@@ -1,5 +1,4 @@
 
-#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -12,474 +11,162 @@
 
 List* listCreate() {
 
-    List* lst = _alloc_ds(List);
-    lst->first = lst->last = lst->crnt = NULL;
-    lst->len = 0;
+    List* val = _alloc_ds(List);
+    val->cap = 1;
+    val->len = 0;
+    val->index = 0;
+    val->list = _alloc_ds_list(ListItem*, val->cap);
 
-    return lst;
+    return val;
 }
 
-void listDestroy(List* ptr) {
+void listDestroy(List* lst) {
 
-    if(ptr != NULL) {
-        if(ptr->first != NULL) {
-            ListNode *node, *next;
-            for(node = ptr->first; node != NULL; node = next) {
-                next = node->next;
-                if(node->data != NULL)
-                    _free(node->data);
-                _free(node);
-            }
+    if(lst != NULL) {
+        for(int i = 0; i < lst->len; i++) {
+            _free(lst->list[i]->data);
+            _free(lst->list[i]);
         }
-        _free(ptr);
+        _free(lst->list);
+        _free(lst);
     }
 }
 
-ListResult listSet(List* ptr, void* data, size_t size) {
+ListErr listAdd(List* lst, void* val, size_t size) {
 
-    if(ptr == NULL || data == NULL || size == 0)
-        return LIST_PARMS;
-
-    if(ptr->crnt != NULL) {
-        if(ptr->crnt->data != NULL) {
-            _free(ptr->crnt->data);
-        }
-
-        ptr->crnt->data = _alloc(size);
-        memcpy(ptr->crnt->data, data, size);
-        ptr->crnt->size = size;
-
-        return LIST_OK;
+    if(lst->len + 1 > lst->cap) {
+        lst->cap <<= 1;
+        lst->list = _realloc_ds_list(lst->list, ListItem*, lst->cap);
     }
-    else
-        return LIST_CRNT;
-}
 
-ListResult listGet(List* ptr, void* data, size_t size) {
+    ListItem* item = _alloc_ds(ListItem);
+    item->data = _alloc(size);
+    memcpy(item->data, val, size);
+    item->size = size;
 
-    if(ptr == NULL || data == NULL || size == 0)
-        return LIST_PARMS;
-
-    if(ptr->crnt != NULL) {
-        if(ptr->crnt->data != NULL) {
-            if(ptr->crnt->size != size) {
-                memcpy(ptr->crnt->data, data, MIN(ptr->crnt->size, size));
-                return LIST_NODE_SIZE;
-            }
-            else {
-                memcpy(ptr->crnt->data, data, size);
-                return LIST_OK;
-            }
-        }
-        else
-            return LIST_NODE_EMPTY;
-    }
-    else
-        return LIST_CRNT;
-}
-
-ListResult listSwap(List* ptr) {
-
-    if(ptr == NULL)
-        return LIST_PARMS;
-
-    if(ptr->crnt != NULL && ptr->crnt->next != NULL) {
-        ListNode* left = ptr->crnt;
-        ListNode* right = ptr->crnt->next;
-
-        if(left->prev != NULL)
-            left->prev->next = right;
-        if(right->next != NULL)
-            right->next->prev = left;
-
-        left->next = right->next;
-        right->prev = left->prev;
-
-        left->prev = right;
-        right->next = left;
-
-        return LIST_OK;
-    }
-    else
-        return LIST_ERROR;
-}
-
-ListResult listPrepend(List* ptr, void* data, size_t size) {
-
-    if(ptr == NULL || data == NULL || size == 0)
-        return LIST_PARMS;
-
-    ListNode* node = _alloc_ds(ListNode);
-    node->data = _alloc(size);
-    memcpy(node->data, data, size);
-    node->size = size;
-    node->prev = NULL;
-    node->next = ptr->first;
-
-    if(ptr->first != NULL)
-        ptr->first->prev = node;
-    else
-        ptr->last = node;
-    ptr->crnt = ptr->first = node;
+    lst->list[lst->len] = item;
+    lst->len++;
 
     return LIST_OK;
 }
 
-ListResult listAppend(List* ptr, void* data, size_t size) {
+ListErr listGet(List* lst, int idx, void* val, size_t size) {
 
-    if(ptr == NULL || data == NULL || size == 0)
-        return LIST_PARMS;
+    if(idx < 0 || idx >= lst->len)
+        return LIST_BOUNDS;
 
-    ListNode* node = _alloc_ds(ListNode);
-    node->data = _alloc(size);
-    memcpy(node->data, data, size);
-    node->size = size;
-    node->next = NULL;
-    node->prev = ptr->last;
+    ListItem* item = lst->list[idx];
+    ListErr err = LIST_OK;
+    if(item->size != size)
+        err = LIST_SIZE;
 
-    if(ptr->last != NULL)
-        ptr->last->next = node;
-    else
-        ptr->first = node;
-    ptr->crnt = ptr->last = node;
+    memcpy(val, item->data, MIN(item->size, size));
 
-    return LIST_OK;
+    return err;
 }
 
-ListResult listInsertAfter(List* ptr, void* data, size_t size) {
+ListErr listSet(List* lst, int idx, void* val, size_t size) {
 
-    if(ptr == NULL || data == NULL || size == 0)
-        return LIST_PARMS;
+    if(idx < 0 || idx >= lst->len)
+        return LIST_BOUNDS;
 
-    ListNode* node = _alloc_ds(ListNode);
-    node->data = _alloc(size);
-    memcpy(node->data, data, size);
-    node->size = size;
-    node->next = node->prev = NULL;
+    ListItem* item = lst->list[idx];
+    ListErr err = LIST_OK;
+    if(item->size != size)
+        err = LIST_SIZE;
 
-    if(ptr->crnt == NULL)
-        return listAppend(ptr, data, size);
-    else {
-        ListNode* crnt = ptr->crnt;
-        node->next = crnt->next;
-        if(crnt->next != NULL)
-            crnt->next->prev = node;
+    memcpy(item->data, val, MIN(size, item->size));
 
-        node->prev = crnt;
-        crnt->next = node;
-        ptr->crnt = node;
-    }
-
-    return LIST_OK;
+    return err;
 }
 
-ListResult listInsertBefore(List* ptr, void* data, size_t size) {
+ListErr listPush(List* lst, void* val, size_t size) {
 
-    if(ptr == NULL || data == NULL || size == 0)
-        return LIST_PARMS;
-
-    ListNode* node = _alloc_ds(ListNode);
-    node->data = _alloc(size);
-    memcpy(node->data, data, size);
-    node->size = size;
-    node->next = node->prev = NULL;
-
-    if(ptr->crnt == NULL)
-        return listPrepend(ptr, data, size);
-    else {
-        ListNode* crnt = ptr->crnt;
-        node->prev = crnt->prev;
-        if(crnt->prev != NULL)
-            crnt->prev->next = node;
-
-        node->next = crnt;
-        crnt->prev = node;
-        ptr->crnt = node;
-    }
-
-    return LIST_OK;
+    return listAdd(lst, val, size);
 }
 
-ListResult listRemove(List* ptr) {
+ListErr listPop(List* lst, void* val, size_t size) {
 
-    if(ptr == NULL)
-        return LIST_PARMS;
+    if(lst->len > 0) {
+        ListItem* item = lst->list[--lst->len];
+        ListErr err = LIST_OK;
+        if(item->size != size)
+            err = LIST_SIZE;
 
-    ListNode* node = ptr->crnt;
+        memcpy(item->data, val, MIN(size, item->size));
 
-    if(node != NULL) {
-        if(node->prev == NULL) {
-            ptr->first = node->next;
-            ptr->first->prev = NULL;
-            if(ptr->first == NULL)
-                ptr->crnt = ptr->last = NULL;
-            else
-                ptr->crnt = ptr->first;
-        }
-        else if(node->next == NULL) {
-            ptr->last = node->prev;
-            ptr->last->next = NULL;
-            if(ptr->last == NULL)
-                ptr->crnt = ptr->first = NULL;
-            else
-                ptr->crnt = ptr->last;
-        }
-        else {
-            node->next->prev = node->prev;
-            node->prev->next = node->next;
-            if(node->next != NULL)
-                ptr->crnt = node->next;
-            else if(node->prev != NULL)
-                ptr->crnt = node->prev;
-            else
-                ptr->crnt = ptr->first;
-        }
+        _free(lst->list[lst->len]->data);
+        _free(lst->list[lst->len]);
 
-        if(node->data != NULL)
-            _free(node->data);
-        _free(node);
-
-        return LIST_OK;
+        return err;
     }
     else
-        return LIST_CRNT;
+        return LIST_BOUNDS;
 }
 
-ListResult listFirst(List* ptr, void* data, size_t size) {
+ListErr listPeek(List* lst, void* val, size_t size) {
 
-    if(ptr == NULL)
-        return LIST_PARMS;
+    if(lst->len > 0) {
+        ListItem* item = lst->list[lst->len - 1];
+        ListErr err = LIST_OK;
+        if(item->size != size)
+            err = LIST_SIZE;
 
-    if(ptr->first != NULL) {
-        ptr->crnt = ptr->first;
-        printf("first: %p\n", ptr->first);
-        if(data != NULL && ptr->crnt->data != NULL) {
-            if(ptr->crnt->size != size) {
-                memcpy(data, ptr->crnt->data, MIN(ptr->crnt->size, size));
-                return LIST_NODE_SIZE;
-            }
-            else {
-                memcpy(data, ptr->crnt->data, size);
-                return LIST_OK;
-            }
-        }
-        else
-            return LIST_NODE_EMPTY;
-    }
-    else {
-        ptr->crnt = NULL;
-        return LIST_EMPTY;
-    }
-}
+        memcpy(item->data, val, MIN(size, item->size));
 
-ListResult listLast(List* ptr, void* data, size_t size) {
-
-    if(ptr == NULL || data == NULL || size == 0)
-        return LIST_PARMS;
-
-    if(ptr->last != NULL) {
-        ptr->crnt = ptr->last;
-        printf("last: %p\n", ptr->last);
-        if(data != NULL && ptr->crnt->data != NULL) {
-            if(ptr->crnt->size != size) {
-                memcpy(data, ptr->crnt->data, MIN(ptr->crnt->size, size));
-                return LIST_NODE_SIZE;
-            }
-            else {
-                memcpy(data, ptr->crnt->data, size);
-                return LIST_OK;
-            }
-        }
-        else
-            return LIST_NODE_EMPTY;
-    }
-    else {
-        ptr->crnt = NULL;
-        return LIST_EMPTY;
-    }
-}
-
-ListResult listNext(List* ptr, void* data, size_t size) {
-
-    if(ptr == NULL)
-        return LIST_PARMS;
-
-    if(ptr->crnt != NULL) {
-        ptr->crnt = ptr->crnt->next;
-        printf("next: %p\n", ptr->crnt);
-        if(data != NULL && ptr->crnt->data != NULL) {
-            if(ptr->crnt->size != size) {
-                memcpy(data, ptr->crnt->data, MIN(ptr->crnt->size, size));
-                return LIST_NODE_SIZE;
-            }
-            else {
-                memcpy(data, ptr->crnt->data, size);
-                return LIST_OK;
-            }
-        }
-        else
-            return LIST_NODE_EMPTY;
+        return err;
     }
     else
-        return LIST_CRNT;
+        return LIST_BOUNDS;
 }
 
-ListResult listPrev(List* ptr, void* data, size_t size) {
+int listGetSize(List* lst) {
 
-    if(ptr == NULL)
-        return LIST_PARMS;
-
-    if(ptr->crnt != NULL) {
-        ptr->crnt = ptr->crnt->prev;
-        printf("prev: %p\n", ptr->crnt);
-        if(data != NULL && ptr->crnt->data != NULL) {
-            if(ptr->crnt->size != size) {
-                memcpy(data, ptr->crnt->data, MIN(ptr->crnt->size, size));
-                return LIST_NODE_SIZE;
-            }
-            else {
-                memcpy(data, ptr->crnt->data, size);
-                return LIST_OK;
-            }
-        }
-        else
-            return LIST_NODE_EMPTY;
-    }
-    else
-        return LIST_CRNT;
+    return lst->len;
 }
 
-ListResult listPush(List* ptr, void* data, size_t size) {
+void* listGetRaw(List* lst) {
 
-    return listAppend(ptr, data, size);
-}
-
-ListResult listPeek(List* ptr, void* data, size_t size) {
-
-    if(ptr == NULL || data == NULL || size == 0)
-        return LIST_PARMS;
-
-    if(ptr->last != NULL) {
-        if(ptr->crnt->size != size) {
-            memcpy(data, ptr->crnt->data, MIN(ptr->crnt->size, size));
-            return LIST_NODE_SIZE;
-        }
-        else {
-            memcpy(data, ptr->crnt->data, size);
-            return LIST_OK;
-        }
-    }
-    else
-        return LIST_EMPTY;
-}
-
-ListResult listPop(List* ptr, void* data, size_t size) {
-
-    if(ptr == NULL)
-        return LIST_PARMS;
-
-    ListResult retv = LIST_OK;
-
-    if(ptr->last != NULL) {
-        if(data != NULL && ptr->crnt->data != NULL) {
-            if(ptr->crnt->size != size) {
-                memcpy(data, ptr->crnt->data, MIN(ptr->crnt->size, size));
-                return LIST_NODE_SIZE;
-            }
-            else {
-                memcpy(data, ptr->crnt->data, size);
-                return LIST_OK;
-            }
-        }
-        else
-            return LIST_OK;
-
-        ListNode* node = ptr->last->prev;
-        ptr->last = node;
-        if(node->data != NULL)
-            _free(node->data);
-        _free(node);
-        return retv;
-    }
-    else
-        return LIST_EMPTY;
+    return lst->list;
 }
 
 #ifdef TEST
-// Build string:
-// clang -DTEST -Wall -Wextra -g -o t list_template_test.c memory.c
-#include <limits.h>
+/*
+ * Build string:
+ * clang -Wall -Wextra -g -o t list_examp.c memory.c -DTEST
+ */
 
-void fdump(List* ptr) {
+void dump(List* arr) {
 
-    int x = 1;
-
-    ListNode* node = ptr->first;
-    while(node != NULL) {
-        printf("%3d. %ld\tself: %p\tprev: %p\tnext: %p\n", x++,
-               node->data ? *(long*)node->data : 0, node, node->prev, node->next);
-
-        node = node->next;
-    }
-
-    printf("\n");
-}
-
-void rdump(List* ptr) {
-
-    int x = 1;
-    ListNode* node = ptr->last;
-
-    while(node != NULL) {
-        printf("%3d. %ld\tself: %p\tprev: %p\tnext %p\n", x++,
-               node->data ? *(long*)node->data : 0, node, node->prev, node->next);
-
-        node = node->prev;
-    }
+    printf("cap: %d\n", arr->cap);
+    printf("len: %d\n", arr->len);
+    for(int i = 0; i < arr->len; i++)
+        printf("%3d. %s\n", i + 1, (char*)arr->list[i]);
 
     printf("\n");
 }
 
 int main() {
 
-    List* list = ListCreate();
-    long val;
+    const char* strs[] = { "string one",
+                           "string two",
+                           "string three",
+                           "string four",
+                           "string five",
+                           "string six",
+                           "string seven",
+                           "string eight",
+                           "string nine",
+                           "string ten",
+                           NULL };
 
-    for(int i = 0; i < 10; i++) {
-        val = random();
-        ListAppend(list, &val, sizeof(val));
-    }
+    List* arr = ListCreate(sizeof(char*));
 
-    fdump(list);
+    for(int i = 0; strs[i] != NULL; i++)
+        ListAdd(arr, (void*)strs[i]);
+    dump(arr);
 
-    ListFirst(list, NULL, 0);
-    for(int i = 0; i < 5; i++)
-        ListNext(list, NULL, 0);
-
-    ListRemove(list);
-
-    fdump(list);
-    rdump(list);
-
-    ListFirst(list, NULL, 0);
-    for(int i = 0; i < 5; i++)
-        ListNext(list, NULL, 0);
-
-    val = random();
-    ListInsertAfter(list, &val, sizeof(val));
-    val = random();
-    ListInsertBefore(list, &val, sizeof(val));
-
-    fdump(list);
-    rdump(list);
-
-    ListFirst(list, NULL, 0);
-    for(int i = 0; i < 5; i++)
-        ListNext(list, NULL, 0);
-    ListSwap(list);
-    fdump(list);
-
-
+    ListDestroy(arr);
     return 0;
 }
 

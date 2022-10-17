@@ -7,7 +7,6 @@ set(LIBRARY_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/../bin")
 
 add_library( ${PROJECT_NAME} STATIC
     memory.c
-    array.c
     hash.c
     tree.c
     list.c
@@ -24,5 +23,3 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:RELEASE>:-Ofast>
     $<$<CONFIG:PROFILE>:-pg -O0>
 )
-
-

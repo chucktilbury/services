@@ -1,52 +1,39 @@
-#ifndef _LIST_H_
-#define _LIST_H_
+
+#ifndef _ARRAY_H_
+#define _ARRAY_H_
 
 #include <stdlib.h>
 
 typedef enum {
     LIST_OK,
-    LIST_EMPTY,
-    LIST_CRNT,
     LIST_END,
-    LIST_NODE_EMPTY,
-    LIST_NODE_SIZE,
-    LIST_PARMS,
+    LIST_BOUNDS,
     LIST_ERROR,
-} ListResult;
-
-typedef struct _list_ {
-    void* data;
-    size_t size;
-    struct _list_* prev;
-    struct _list_* next;
-} ListNode;
+    LIST_SIZE,
+} ListErr;
 
 typedef struct {
-    ListNode* first;
-    ListNode* last;
-    ListNode* crnt;
-    size_t len;
+    void* data;
+    size_t size;
+} ListItem;
+
+typedef struct {
+    ListItem** list;
+    int cap;
+    int len;
+    int index;
 } List;
 
-List* ListCreate();
-void ListDestroy(List* ptr);
-ListResult listSet(List* ptr, void* data, size_t size);
-ListResult listGet(List* ptr, void* data, size_t size);
-ListResult listSwap(List* ptr);
+List* listCreate();
+void listDestroy(List* lst);
+ListErr listAdd(List* lst, void* val, size_t size);
+ListErr listGet(List* lst, int idx, void* val, size_t size);
+ListErr listSet(List* lst, int idx, void* val, size_t size);
+ListErr listPush(List* lst, void* val, size_t size);
+ListErr listPop(List* lst, void* val, size_t size);
+ListErr listPeek(List* lst, void* val, size_t size);
+int listGetSize(List* lst);
+void* listGetRaw(List* lst);
 
-ListResult listPrepend(List* ptr, void* data, size_t size);
-ListResult listAppend(List* ptr, void* data, size_t size);
-ListResult listInsertAfter(List* ptr, void* data, size_t size);
-ListResult listInsertBefore(List* ptr, void* data, size_t size);
-ListResult listRemove(List* ptr);
-
-ListResult listFirst(List* ptr, void* data, size_t size);
-ListResult listLast(List* ptr, void* data, size_t size);
-ListResult listNext(List* ptr, void* data, size_t size);
-ListResult listPrev(List* ptr, void* data, size_t size);
-
-ListResult listPush(List* ptr, void* data, size_t size);
-ListResult listPeek(List* ptr, void* data, size_t size);
-ListResult listPop(List* ptr, void* data, size_t size);
 
 #endif

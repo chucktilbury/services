@@ -4,6 +4,15 @@
 
 #include <stdlib.h>
 
+typedef enum {
+    TREE_OK,
+    TREE_ERR,
+    TREE_NOT_FOUND,
+    TREE_DUPLICATE,
+    TREE_SIZE,
+    TREE_PARAM,
+} TreeErr;
+
 typedef struct _node_ {
     const char* key;
     void* data;
@@ -17,11 +26,11 @@ typedef struct {
 } Tree;
 
 Tree* treeCreate();
-void treeDestroy(Tree* tree);
-void treeBalance(Tree* tree);
-void* treeFind(Tree* tree, const char* key);
-void treeAdd(Tree* tree, const char* key, void* data);
-void treeRemove(Tree* tree, const char* key);
+TreeErr treeDestroy(Tree* tree);
+TreeErr treeBalance(Tree* tree);
+TreeErr treeFind(Tree* tree, const char* key, void* data, size_t size);
+TreeErr treeAdd(Tree* tree, const char* key, void* data, size_t size);
+TreeErr treeRemove(Tree* tree, const char* key);
 
 
 #endif

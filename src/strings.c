@@ -17,7 +17,7 @@
 
 /*
  * Use strtok() on an allocated buffer.
- */
+ *
 static inline const char* tokstr(const char* buf, const char* find) {
 
     static char* tmp;
@@ -28,6 +28,7 @@ static inline const char* tokstr(const char* buf, const char* find) {
     else
         return strtok(NULL, find);
 }
+ */
 
 /*
  * Allocate memory for a new String data structure. The parameter can be NULL
@@ -38,7 +39,7 @@ String* createStr(const char* buffer) {
     String* sptr = _alloc_ds(String);
     sptr->len = 0;
     sptr->cap = 1;
-    sptr->buffer = _alloc_ds_array(char, sptr->cap);
+    sptr->buffer = _alloc_ds_list(char, sptr->cap);
 
     appendStr(sptr, buffer);
 
@@ -68,7 +69,7 @@ void appendStr(String* ptr, const char* buffer) {
         if(ptr->len + len + 1 > ptr->cap) {
             while(ptr->len + len + 1 > ptr->cap)
                 ptr->cap <<= 1;
-            ptr->buffer = _realloc_ds_array(ptr->buffer, char, ptr->cap);
+            ptr->buffer = _realloc_ds_list(ptr->buffer, char, ptr->cap);
         }
 
         strcat(ptr->buffer, buffer);
@@ -296,7 +297,7 @@ void stripStr(String* buffer) {
     char *head, *tail;
     for(head = &buffer->buffer[0]; isspace(*head) && *head != '\0'; head++) { /*nothing*/
     }
-    for(tail = head; !isspace(tail) && *tail != '\0'; tail++) { /*nothing*/
+    for(tail = head; !isspace(*tail) && *tail != '\0'; tail++) { /*nothing*/
     }
     *tail = '\0';
 
@@ -308,7 +309,7 @@ void stripStr(String* buffer) {
     buffer->cap = 1;
     while(buffer->len + 1 > buffer->cap)
         buffer->cap <<= 1;
-    buffer->buffer = _realloc_ds_array(buffer->buffer, char, buffer->cap);
+    buffer->buffer = _realloc_ds_list(buffer->buffer, char, buffer->cap);
 }
 
 /*
