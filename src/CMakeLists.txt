@@ -1,11 +1,11 @@
 
 project(services)
 
-include_directories( ${CMAKE_CURRENT_BINARY_DIR} ./ )
 set(CMAKE_C_COMPILER /usr/bin/clang)
 set(CMAKE_CXX_COMPILER /usr/bin/clang++)
+set(LIBRARY_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/../bin")
 
-add_library( ${PROJECT_NAME}
+add_library( ${PROJECT_NAME} STATIC
     memory.c
     array.c
     hash.c
@@ -25,4 +25,4 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:PROFILE>:-pg -O0>
 )
 
-#add_subdirectory(tests)
+
